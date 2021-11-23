@@ -5,9 +5,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
+
+const FORM_KEY_VALUE = "imageFile"
 
 var (
 	listImagesRegex  = regexp.MustCompile(`^\/images[\/]*$`)
@@ -37,7 +40,25 @@ func (h *imageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *imageHandler) List(w http.ResponseWriter, r *http.Request) {
 	log.Println("List images called")
+	// Match pattern for uploaded image files
+	files, err := filepath.Glob("uploads/image-*.*")
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	log.Println("Number of images found", len(files))
+
+	// Only return the unique idenfitier for each file, which can be used for retrieving by ID
+	var fileIDs []string
+	for _, file := range files {
+		startIndex := strings.IndexByte(file, '-') + 1
+		endIndex := strings.IndexByte(file, '.')
+		fileID := file[startIndex:endIndex]
+		fileIDs = append(fileIDs, fileID)
+	}
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(strings.Join(fileIDs, ",")))
 }
 
 func (h *imageHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +71,7 @@ func (h *imageHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	// Max file size 10 MB
 	r.ParseMultipartForm(10 << 20)
 	// Retrieve the first file for the `imageFile` form key
-	file, _, err := r.FormFile("imageFile")
+	file, _, err := r.FormFile(FORM_KEY_VALUE)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "No form key with value `imageFile` found in the request body", http.StatusBadRequest)
