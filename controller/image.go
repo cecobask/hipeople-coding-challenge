@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -13,9 +14,10 @@ import (
 
 const FORM_KEY_VALUE = "imageFile"
 
+//go:generate mockgen -destination=mock/image.go -package=mock github.com/cecobask/hipeople-coding-challenge/controller ImageController
 type ImageController interface {
 	List() (string, *util.RequestError)
-	GetByID(r *http.Request) *util.RequestError
+	GetByID(imageID string) ([]byte, *util.RequestError)
 	Upload(r *http.Request) (string, *util.RequestError)
 }
 
@@ -27,7 +29,7 @@ func New() ImageController {
 
 func (c *imageController) List() (string, *util.RequestError) {
 	// Match pattern for uploaded image files
-	files, err := filepath.Glob("../uploads/image-*.*")
+	files, err := filepath.Glob("uploads/image-*.*")
 	if err != nil {
 		log.Println(err)
 		return "", &util.RequestError{
@@ -49,8 +51,38 @@ func (c *imageController) List() (string, *util.RequestError) {
 	return strings.Join(fileIDs, ","), nil
 }
 
-func (c *imageController) GetByID(r *http.Request) *util.RequestError {
-	return nil
+func (c *imageController) GetByID(imageID string) ([]byte, *util.RequestError) {
+	// Look for the specified image file
+	images, err := filepath.Glob(fmt.Sprintf("uploads/image-%s.*", imageID))
+	if err != nil {
+		log.Println(err)
+		return nil, &util.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Pattern malformed",
+			Err:     err,
+		}
+	}
+	if images == nil {
+		log.Println(err)
+		return nil, &util.RequestError{
+			Status:  http.StatusNotFound,
+			Message: "Image not found",
+			Err:     err,
+		}
+	}
+
+	// Return the specified file
+	imageBytes, err := os.ReadFile(images[0])
+	if err != nil {
+		log.Println(err)
+		return nil, &util.RequestError{
+			Status:  http.StatusInternalServerError,
+			Message: "Internal server error",
+			Err:     err,
+		}
+	}
+	log.Println("Successfully retrieved image with ID", imageID)
+	return imageBytes, nil
 }
 
 func (c *imageController) Upload(r *http.Request) (string, *util.RequestError) {
@@ -69,7 +101,7 @@ func (c *imageController) Upload(r *http.Request) (string, *util.RequestError) {
 	defer file.Close()
 
 	// Create a temporary file within the `uploads` directory that follows a naming pattern
-	tempFile, err := os.CreateTemp("../uploads", "image-*.png")
+	tempFile, err := os.CreateTemp("uploads", "image-*.png")
 	if err != nil {
 		log.Println(err)
 		return "", &util.RequestError{

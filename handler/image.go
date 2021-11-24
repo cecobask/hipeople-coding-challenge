@@ -3,6 +3,7 @@ package handler
 import (
 	"log"
 	"net/http"
+	"path"
 	"regexp"
 
 	"github.com/cecobask/hipeople-coding-challenge/controller"
@@ -50,25 +51,35 @@ func (h *imageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *imageHandler) List(w http.ResponseWriter, r *http.Request) {
 	log.Println("List images called")
-	fileIDs, err := h.imageController.List()
+	imageIDs, err := h.imageController.List()
 	if err != nil {
 		http.Error(w, err.Message, err.Status)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fileIDs))
+	w.Write([]byte(imageIDs))
 }
 
 func (h *imageHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	log.Println("Get image by ID called")
+	imageID := path.Base(r.URL.Path)
+	imageBytes, err := h.imageController.GetByID(imageID)
+	if err != nil {
+		http.Error(w, err.Message, err.Status)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Write(imageBytes)
 }
 
 func (h *imageHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	log.Println("Upload image called")
-	fileID, err := h.imageController.Upload(r)
+	imageID, err := h.imageController.Upload(r)
 	if err != nil {
 		http.Error(w, err.Message, err.Status)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fileID))
+	w.Write([]byte(imageID))
 }

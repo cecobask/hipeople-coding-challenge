@@ -36,11 +36,12 @@ func (m *MockImageController) EXPECT() *MockImageControllerMockRecorder {
 }
 
 // GetByID mocks base method.
-func (m *MockImageController) GetByID(arg0 *http.Request) *util.RequestError {
+func (m *MockImageController) GetByID(arg0 string) ([]byte, *util.RequestError) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByID", arg0)
-	ret0, _ := ret[0].(*util.RequestError)
-	return ret0
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(*util.RequestError)
+	return ret0, ret1
 }
 
 // GetByID indicates an expected call of GetByID.

@@ -8,7 +8,9 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -17,11 +19,17 @@ import (
 
 func init() {
 	log.SetOutput(io.Discard)
+	_, filename, _, _ := runtime.Caller(0)
+	dir := path.Join(path.Dir(filename), "..")
+	err := os.Chdir(dir)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Removes all images from the uploads folder
 func cleanup() {
-	files, err := filepath.Glob("../uploads/image-*.*")
+	files, err := filepath.Glob("uploads/image-*.*")
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +48,7 @@ func imageUpload(t *testing.T, ctrl ImageController, formKey string) (string, *u
 	if err != nil {
 		t.Fatal(err)
 	}
-	fileContents, err := os.ReadFile("../fixtures/test.png")
+	fileContents, err := os.ReadFile("fixtures/test.png")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +74,7 @@ func TestList(t *testing.T) {
 	tests := []test{
 		{
 			name:        "success listing all images",
-			fixturePath: "../fixtures/test.png",
+			fixturePath: "fixtures/test.png",
 			uploadImage: true,
 		},
 		{
@@ -80,7 +88,6 @@ func TestList(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Cleanup(cleanup)
 			ctrl := New()
-			// Conditional setup
 			if tc.uploadImage == true {
 				uploadedImageID, _ := imageUpload(t, ctrl, FORM_KEY_VALUE)
 				imagesStr, err := ctrl.List()
@@ -138,6 +145,53 @@ func TestUpload(t *testing.T) {
 			} else {
 				if fileID == "" {
 					t.Fatal("Expected file ID to not be empty")
+				}
+			}
+		})
+	}
+}
+
+func TestGetByID(t *testing.T) {
+	type test struct {
+		name        string
+		fixturePath string
+		uploadImage bool
+	}
+
+	tests := []test{
+		{
+			name:        "success retrieving an image by its id",
+			fixturePath: "fixtures/test.png",
+			uploadImage: true,
+		},
+		{
+			name:        "error response when the image was not found",
+			fixturePath: "",
+			uploadImage: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Cleanup(cleanup)
+			ctrl := New()
+			if tc.uploadImage == true {
+				uploadedImageID, _ := imageUpload(t, ctrl, FORM_KEY_VALUE)
+				imageBytes, err := ctrl.GetByID(uploadedImageID)
+
+				if len(imageBytes) == 0 {
+					t.Fatal("Expected image bytes to be greater than 0")
+				}
+				if err != nil {
+					t.Fatalf("Expected error to be nil, got: %v", err.Message)
+				}
+			} else {
+				imageBytes, err := ctrl.GetByID("0000000")
+				if err.Status != http.StatusNotFound {
+					t.Fatalf("Expected status not found, got: %v", err.Status)
+				}
+				if len(imageBytes) != 0 {
+					t.Fatalf("Expected byte slice to be empty, got: %v", len(imageBytes))
 				}
 			}
 		})
