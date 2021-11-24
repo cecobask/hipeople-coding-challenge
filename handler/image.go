@@ -15,6 +15,7 @@ var (
 	uploadImageRegex = regexp.MustCompile(`^\/images[\/]*$`)
 )
 
+// ImageHandler methods
 type ImageHandler interface {
 	ServeHTTP(http.ResponseWriter, *http.Request)
 	List(http.ResponseWriter, *http.Request)
@@ -26,6 +27,7 @@ type imageHandler struct {
 	imageController controller.ImageController
 }
 
+// New ImageHandler constructor
 func New(ctrl controller.ImageController) ImageHandler {
 	return &imageHandler{
 		imageController: ctrl,

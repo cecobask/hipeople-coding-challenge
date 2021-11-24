@@ -89,7 +89,7 @@ func TestList(t *testing.T) {
 			t.Cleanup(cleanup)
 			ctrl := New()
 			if tc.uploadImage == true {
-				uploadedImageID, _ := imageUpload(t, ctrl, FORM_KEY_VALUE)
+				uploadedImageID, _ := imageUpload(t, ctrl, formKeyValue)
 				imagesStr, err := ctrl.List()
 
 				if strings.Contains(imagesStr, uploadedImageID) == false {
@@ -118,7 +118,7 @@ func TestUpload(t *testing.T) {
 	tests := []test{
 		{
 			name:    "success uploading an image",
-			formKey: FORM_KEY_VALUE,
+			formKey: formKeyValue,
 			err:     nil,
 		},
 		{
@@ -176,7 +176,7 @@ func TestGetByID(t *testing.T) {
 			t.Cleanup(cleanup)
 			ctrl := New()
 			if tc.uploadImage == true {
-				uploadedImageID, _ := imageUpload(t, ctrl, FORM_KEY_VALUE)
+				uploadedImageID, _ := imageUpload(t, ctrl, formKeyValue)
 				imageBytes, err := ctrl.GetByID(uploadedImageID)
 
 				if len(imageBytes) == 0 {

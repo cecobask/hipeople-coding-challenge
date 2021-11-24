@@ -63,7 +63,7 @@ func TestList(t *testing.T) {
 				List().
 				Return(tc.imageID, tc.err).
 				Times(1)
-			req, res := setupHttpRequest(t, http.MethodGet, "/images/", nil)
+			req, res := setupHTTPRequest(t, http.MethodGet, "/images/", nil)
 			handler.List(res, req)
 
 			if status := res.Code; status != tc.expectedCode {
@@ -82,7 +82,7 @@ func TestList(t *testing.T) {
 	}
 }
 
-func setupHttpRequest(t *testing.T, method, path string, body io.Reader) (*http.Request, *httptest.ResponseRecorder) {
+func setupHTTPRequest(t *testing.T, method, path string, body io.Reader) (*http.Request, *httptest.ResponseRecorder) {
 	req, err := http.NewRequest(method, path, body)
 	if err != nil {
 		t.Fatal(err)
@@ -119,7 +119,7 @@ func TestUpload(t *testing.T) {
 				Return(tc.imageID, tc.err).
 				Times(1)
 
-			req, res := setupHttpRequest(t, http.MethodPost, "/images/", nil)
+			req, res := setupHTTPRequest(t, http.MethodPost, "/images/", nil)
 			handler.Upload(res, req)
 
 			if status := res.Code; status != tc.expectedCode {
@@ -166,7 +166,7 @@ func TestGetByID(t *testing.T) {
 				Return(tc.imageBytes, tc.err).
 				Times(1)
 
-			req, res := setupHttpRequest(t, http.MethodGet, fmt.Sprintf("/images/%s", imageID), nil)
+			req, res := setupHTTPRequest(t, http.MethodGet, fmt.Sprintf("/images/%s", imageID), nil)
 			handler.GetByID(res, req)
 
 			if status := res.Code; status != tc.expectedCode {
