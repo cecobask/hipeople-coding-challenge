@@ -71,7 +71,6 @@ func (h *imageHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Write(imageBytes)
 }
 

@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"mime/multipart"
@@ -40,15 +41,15 @@ func cleanup() {
 	}
 }
 
-func imageUpload(t *testing.T, ctrl ImageController, formKey string) (string, *util.RequestError) {
+func imageUpload(t *testing.T, ctrl ImageController, formKey string, fileName string) (string, *util.RequestError) {
 	// Prepare the request body
 	body := new(bytes.Buffer)
 	mpWriter := multipart.NewWriter(body)
-	part, err := mpWriter.CreateFormFile(formKey, "test.png")
+	part, err := mpWriter.CreateFormFile(formKey, fileName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fileContents, err := os.ReadFile("fixtures/test.png")
+	fileContents, err := os.ReadFile(fmt.Sprintf("fixtures/%s", fileName))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +75,7 @@ func TestList(t *testing.T) {
 	tests := []test{
 		{
 			name:        "success listing all images",
-			fixturePath: "fixtures/test.png",
+			fixturePath: "fixtures/validImage.png",
 			uploadImage: true,
 		},
 		{
@@ -89,7 +90,7 @@ func TestList(t *testing.T) {
 			t.Cleanup(cleanup)
 			ctrl := New()
 			if tc.uploadImage == true {
-				uploadedImageID, _ := imageUpload(t, ctrl, formKeyValue)
+				uploadedImageID, _ := imageUpload(t, ctrl, formKeyValue, "validImage.png")
 				imagesStr, err := ctrl.List()
 
 				if strings.Contains(imagesStr, uploadedImageID) == false {
@@ -110,24 +111,37 @@ func TestList(t *testing.T) {
 
 func TestUpload(t *testing.T) {
 	type test struct {
-		name    string
-		formKey string
-		err     *util.RequestError
+		name     string
+		formKey  string
+		fileName string
+		err      *util.RequestError
 	}
 
 	tests := []test{
 		{
-			name:    "success uploading an image",
-			formKey: formKeyValue,
-			err:     nil,
+			name:     "success uploading an image",
+			formKey:  formKeyValue,
+			fileName: "validImage.png",
+			err:      nil,
 		},
 		{
-			name:    "error when invalid form key is passed",
-			formKey: "invalidKey",
+			name:     "error when invalid form key is passed",
+			formKey:  "invalidKey",
+			fileName: "validImage.png",
 			err: &util.RequestError{
 				Status:  http.StatusBadRequest,
 				Message: "No form key with value `imageFile` found in the request body",
 				Err:     errors.New("invalid form key"),
+			},
+		},
+		{
+			name:     "error when invalid file type is passed",
+			formKey:  formKeyValue,
+			fileName: "randomFile.txt",
+			err: &util.RequestError{
+				Status:  http.StatusBadRequest,
+				Message: "Invalid file type",
+				Err:     errors.New("invalid file type"),
 			},
 		},
 	}
@@ -136,7 +150,7 @@ func TestUpload(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Cleanup(cleanup)
 			ctrl := New()
-			fileID, reqErr := imageUpload(t, ctrl, tc.formKey)
+			fileID, reqErr := imageUpload(t, ctrl, tc.formKey, tc.fileName)
 
 			if tc.err != nil {
 				if reqErr.Message != tc.err.Message {
@@ -161,7 +175,7 @@ func TestGetByID(t *testing.T) {
 	tests := []test{
 		{
 			name:        "success retrieving an image by its id",
-			fixturePath: "fixtures/test.png",
+			fixturePath: "fixtures/validImage.png",
 			uploadImage: true,
 		},
 		{
@@ -176,7 +190,7 @@ func TestGetByID(t *testing.T) {
 			t.Cleanup(cleanup)
 			ctrl := New()
 			if tc.uploadImage == true {
-				uploadedImageID, _ := imageUpload(t, ctrl, formKeyValue)
+				uploadedImageID, _ := imageUpload(t, ctrl, formKeyValue, "validImage.png")
 				imageBytes, err := ctrl.GetByID(uploadedImageID)
 
 				if len(imageBytes) == 0 {

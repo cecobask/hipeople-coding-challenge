@@ -83,25 +83,29 @@ func (c *imageController) Upload(r *http.Request) (string, *util.RequestError) {
 	}
 	defer file.Close()
 
+	// Read the contents of the uploaded image into a byte slice
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		log.Println(err)
+		return "", util.NewRequestError(http.StatusInternalServerError, "Internal server error", err)
+	}
+	fileExtension, err := validateFileType(fileBytes)
+	if err.(*util.RequestError) != nil {
+		return "", err.(*util.RequestError)
+	}
+
 	// Create a temporary file within the uploads directory that follows a naming pattern
 	err = os.MkdirAll(uploadsDir, os.ModePerm)
 	if err != nil {
 		log.Println(err)
 		return "", util.NewRequestError(http.StatusInternalServerError, "Internal server error", err)
 	}
-	tempFile, err := os.CreateTemp(uploadsDir, "image-*.png")
+	tempFile, err := os.CreateTemp(uploadsDir, fmt.Sprintf("image-*.%s", fileExtension))
 	if err != nil {
 		log.Println(err)
 		return "", util.NewRequestError(http.StatusInternalServerError, "Internal server error", err)
 	}
 	defer tempFile.Close()
-
-	// Read the contents of the uploaded image into a byte slice and write it to the temporary file
-	fileBytes, err := io.ReadAll(file)
-	if err != nil {
-		log.Println(err)
-		return "", util.NewRequestError(http.StatusInternalServerError, "Internal server error", err)
-	}
 	tempFile.Write(fileBytes)
 
 	// Return the unique ID of the image when successful
@@ -112,4 +116,16 @@ func (c *imageController) Upload(r *http.Request) (string, *util.RequestError) {
 	log.Printf("Successfully uploaded file with ID %s", uniqueID)
 
 	return uniqueID, nil
+}
+
+func validateFileType(fileBytes []byte) (string, *util.RequestError) {
+	// Get content-type of the image
+	contentType := http.DetectContentType(fileBytes)
+	if valid := strings.Contains(contentType, "image/"); !valid {
+		return "", util.NewRequestError(http.StatusBadRequest, "Invalid file type", nil)
+	}
+	startIndex := strings.LastIndexByte(contentType, '/') + 1
+	fileExtension := contentType[startIndex:]
+
+	return fileExtension, nil
 }
