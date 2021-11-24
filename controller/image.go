@@ -95,7 +95,6 @@ func (c *imageController) Upload(r *http.Request) (string, *util.RequestError) {
 		return "", util.NewRequestError(http.StatusInternalServerError, "Internal server error", err)
 	}
 	defer tempFile.Close()
-	log.Println("TEST")
 
 	// Read the contents of the uploaded image into a byte slice and write it to the temporary file
 	fileBytes, err := io.ReadAll(file)
